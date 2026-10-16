@@ -1,0 +1,74 @@
+# Python and virtual environments
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Notebook checkpoints
+.ipynb_checkpoints/
+
+# Credentials and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+*.p12
+
+# Local database exports and embedded database files, including outside data/
+*.dump
+*.backup
+*.bak
+*.sql.gz
+*.sqlite
+*.sqlite3
+*.db
+
+# Local datasets (retain directory placeholders)
+data/raw/*
+!data/raw/.gitkeep
+data/interim/*
+!data/interim/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+
+# Generated report outputs
+reports/*
+!reports/.gitkeep
+!reports/phase0_sample_quality.md
+!reports/full_history_quality.md
+!reports/calendar_completeness.md
+!reports/database_load_validation.md
+!reports/performance_analysis_validation.md
+!reports/risk_analysis_validation.md
+!reports/powerbi_validation.md
+!reports/figures/
+reports/figures/*
+!reports/figures/.gitkeep
+
+# Power BI binary reports, exports, and local caches
+*.pbix
+*.pbit
+*.abf
+**/.pbi/localSettings.json
+**/.pbi/cache.abf
+
+# Editor, operating system, and temporary files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.log
+*.tmp
+~$*

@@ -1,0 +1,14 @@
+# Phase 1 supported ranges; not a tested environment lock.
+# Download and local configuration
+requests>=2.32,<3
+python-dotenv>=1.0,<2
+# XLSX parsing, cleaning, and numerical validation
+pandas>=2.2,<4
+numpy>=1.26,<3
+openpyxl>=3.1,<4
+# PostgreSQL connection
+SQLAlchemy>=2.0,<3
+psycopg[binary]>=3.2,<4
+# Plotting and testing
+matplotlib>=3.8,<4
+pytest>=8,<10

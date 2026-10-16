@@ -1,0 +1,66 @@
+// Create each measure individually in Desktop. No financial recalculation.
+Cumulative NAV Return =
+IF(HASONEVALUE(DimFund[instrument_id]) && COUNTROWS(FactPerformance)=1,
+   SELECTEDVALUE(FactPerformance[cumulative_return]))
+
+CAGR =
+IF(HASONEVALUE(DimFund[instrument_id]) && COUNTROWS(FactPerformance)=1,
+   SELECTEDVALUE(FactPerformance[cagr]))
+
+Maximum Drawdown =
+IF(HASONEVALUE(DimFund[instrument_id]) && COUNTROWS(FactPerformance)=1,
+   SELECTEDVALUE(FactPerformance[max_drawdown]))
+
+Annualized Volatility =
+IF(HASONEVALUE(DimFund[instrument_id]) && COUNTROWS(FactRisk)=1,
+   SELECTEDVALUE(FactRisk[annualized_volatility]))
+
+Downside Deviation Zero Target =
+IF(HASONEVALUE(DimFund[instrument_id]) && COUNTROWS(FactRisk)=1,
+   SELECTEDVALUE(FactRisk[downside_deviation]))
+
+Historical VaR 95 =
+IF(HASONEVALUE(DimFund[instrument_id]) && COUNTROWS(FactRisk)=1,
+   SELECTEDVALUE(FactRisk[var_95]))
+
+Historical ES 95 =
+IF(HASONEVALUE(DimFund[instrument_id]) && COUNTROWS(FactRisk)=1,
+   SELECTEDVALUE(FactRisk[expected_shortfall_95]))
+
+Latest Rolling 63 =
+IF(HASONEVALUE(DimFund[instrument_id]) && COUNTROWS(FactRisk)=1,
+   SELECTEDVALUE(FactRisk[latest_volatility_63]))
+
+Latest Rolling 252 =
+IF(HASONEVALUE(DimFund[instrument_id]) && COUNTROWS(FactRisk)=1,
+   SELECTEDVALUE(FactRisk[latest_volatility_252]))
+
+NAV = IF(COUNTROWS(FactDaily)=1, SELECTEDVALUE(FactDaily[nav]))
+Rebased NAV = IF(COUNTROWS(FactDaily)=1, SELECTEDVALUE(FactDaily[rebased_nav]))
+Cumulative Series = IF(COUNTROWS(FactDaily)=1, SELECTEDVALUE(FactDaily[cumulative_return]))
+Monthly NAV Return = IF(COUNTROWS(FactMonthly)=1, SELECTEDVALUE(FactMonthly[period_return]))
+Calendar Year NAV Return = IF(COUNTROWS(FactYear)=1, SELECTEDVALUE(FactYear[period_return]))
+Observed Drawdown = IF(COUNTROWS(FactDrawdown)=1, SELECTEDVALUE(FactDrawdown[drawdown]))
+Rolling 63 Volatility = IF(COUNTROWS(FactRolling63)=1, SELECTEDVALUE(FactRolling63[annualized_volatility]))
+Rolling 252 Volatility = IF(COUNTROWS(FactRolling252)=1, SELECTEDVALUE(FactRolling252[annualized_volatility]))
+
+Risk Sample Count =
+IF(HASONEVALUE(DimFund[instrument_id]) && COUNTROWS(FactRisk)=1,
+   SELECTEDVALUE(FactRisk[valid_count]))
+NAV Observation Count = SUM(FactQuality[observation_count])
+Selected Fund Count = DISTINCTCOUNT(DimFund[instrument_id])
+Data As Of = MIN(FactQuality[last_nav_date])
+Model Refresh UTC = MAX(RefreshInfo[refreshed_at_utc])
+
+Performance Window Label =
+IF(HASONEVALUE(DimFund[instrument_id]) && COUNTROWS(FactPerformance)=1,
+   "Performance: " & FORMAT(SELECTEDVALUE(FactPerformance[start_date]),"yyyy-MM-dd") &
+   " to " & FORMAT(SELECTEDVALUE(FactPerformance[end_date]),"yyyy-MM-dd"),
+   "Select one fund for snapshot cards")
+
+Risk Window Label =
+IF(HASONEVALUE(DimFund[instrument_id]) && COUNTROWS(FactRisk)=1,
+   "Controlled NAV risk: " & FORMAT(SELECTEDVALUE(FactRisk[start_date]),"yyyy-MM-dd") &
+   " to " & FORMAT(SELECTEDVALUE(FactRisk[end_date]),"yyyy-MM-dd") &
+   " | n=" & FORMAT(SELECTEDVALUE(FactRisk[valid_count]),"0"),
+   "Select one fund for snapshot cards")
