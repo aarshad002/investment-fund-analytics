@@ -1,85 +1,210 @@
 # Investment Fund Analytics
 
-A local investment-fund analytics portfolio project for analytics, data science, AI/data-platform and financial-data engineering roles. It demonstrates Python/pandas data preparation, PostgreSQL/SQL modeling, validation and Power BI reporting using two Luxembourg-domiciled UCITS share classes. The delivered system is a local analytical workflow; it contains no predictive ML or production deployment.
+Investment Fund Analytics transforms historical fund net asset values (NAVs) into validated performance, risk and interactive business intelligence outputs. Python handles acquisition, parsing and quality checks; PostgreSQL preserves observations and source lineage; analytical SQL and independent Python calculations reconcile the results used by a five-page Power BI dashboard.
 
-## Delivered scope
-
-The pipeline ingests and validates official DWS/Xtrackers XLSX histories, preserves acquisition checksums and original run lineage, loads PostgreSQL idempotently, and produces reconciled performance, observed drawdown and controlled-risk analytics. The delivered sample contains two EUR accumulating Luxembourg-domiciled UCITS share classes, not a representative fund-industry universe:
+The system runs locally on a Windows laptop, using CPU-based processing and a local PostgreSQL instance. It analyzes two EUR accumulating, Luxembourg-domiciled UCITS share classes:
 
 | Fund | ISIN |
 | --- | --- |
 | Xtrackers Euro Stoxx 50 UCITS ETF 1C | LU0380865021 |
 | Xtrackers II Eurozone Government Bond UCITS ETF 1C | LU0290355717 |
 
-Validated outputs include cumulative NAV change, CAGR, monthly/calendar-year returns, observed maximum drawdown and recovery, annualized volatility, zero-target downside deviation, historical 95% VaR/expected shortfall and rolling 63/252-observation volatility. SQL and Python results were independently reconciled. The 16 October 2026 repository audit recorded **66 passed, 0 failed, 0 skipped** tests in the configured local environment. Subsequent Batch 2 isolation checks on the same date recorded **67 passed, 0 failed, 0 skipped**, including one new database-name guard regression; working core tables and sequences remained unchanged. See [testing evidence](docs/testing_validation.md). These are dated results, not a permanent result or a fresh-clone guarantee.
+## Key capabilities
 
-The user completed and manually reviewed all five Power BI pages: Executive Overview; Performance Comparison; Risk & Drawdowns; Fund Detail; Data Quality & Methodology. Twelve PostgreSQL presentation views feed the documented star-schema model. The PBIX is local and Git-ignored. Codex independently checked SQL results and repository DAX definitions; it did not inspect PBIX contents, execute its DAX, or independently verify Desktop interactions. See [dashboard evidence and boundaries](reports/powerbi_validation.md).
+- **Data ingestion and cleaning:** date-bounded official XLSX downloads, checksum manifests, workbook parsing and standardized observations.
+- **Data quality:** identity, currency, date, positivity, duplicate, overlap and conflict checks; suspicious changes remain flagged for review.
+- **Relational storage:** constrained PostgreSQL tables, acquisition/run lineage and transactional, idempotent observation loading. Conflicts abort loading rather than overwrite existing values.
+- **Performance analytics:** cumulative NAV change, CAGR, monthly and calendar-year returns, common-window comparisons and observed drawdown/recovery analysis.
+- **Controlled risk analytics:** annualized volatility, zero-target downside deviation, historical VaR/Expected Shortfall and rolling observation-window volatility.
+- **Business intelligence:** twelve presentation views, documented model relationships and DAX measures supporting five completed Power BI pages.
+- **Verification:** deterministic tests, isolated database integration tests and independent SQL/Python reconciliation.
 
-## Architecture and demonstrated skills
+## System architecture
 
 ```mermaid
 flowchart LR
-    A[Official DWS XLSX - permission-gated acquisition] --> B[Local ignored raw files and checksum manifest]
-    B --> C[Python parsing, validation and conflict checks]
-    C --> D[PostgreSQL core identities, observations and run lineage]
-    D --> E[SQL performance, observed drawdown and controlled-risk views]
-    E --> F[Twelve Power BI presentation views]
-    F --> G[Local five-page Power BI dashboard]
-    E --> H[Independent Python reconciliation]
-    H --> I[Local ignored numerical evidence]
-    J[Public candidate: original code, methods and test evidence]
+    A["Authorized data sources<br/>Official DWS/Xtrackers XLSX"] --> B["Python ingestion<br/>Download, parse and standardize"]
+    B --> C["Data validation<br/>Identity, dates, values and conflicts"]
+    C --> D[("PostgreSQL<br/>Core observations and source/run lineage")]
+    C --> Q["Local quality evidence<br/>Calendar reconstruction and review"]
+    Q --> D
+    subgraph Analytics["Analytical SQL views"]
+        E["Performance<br/>Returns, drawdowns and recovery"]
+        F["Controlled risk<br/>Eligible intervals and rolling metrics"]
+        H["Data quality<br/>Coverage, exclusions and lineage"]
+    end
+    D --> E
+    D --> F
+    D --> H
+    E --> P["12 Power BI presentation views"]
+    F --> P
+    H --> P
+    P --> G["Power BI Desktop<br/>Five-page interactive dashboard"]
+    D -.-> V["Independent Python reconciliation"]
+    Analytics -.-> V
+    V --> O["Local validation outputs"]
 ```
 
-The diagram describes the implemented architecture; it is not a published data feed. Local raw files, numerical evidence and the imported-data PBIX stay outside the public candidate. Data access depends on provider availability and permission, while public release depends on the separate rights review.
+The database separates `staging`, `core` and `analytics` schemas. Core tables retain fund/instrument identities, sources, runs, observations and quality issues; benchmark metadata is a separate extension. The staging schema is reserved for source-record preparation. Raw files and detailed generated outputs remain local.
 
-| Capability | Evidence in this project |
+## Technology stack
+
+| Layer | Technologies and responsibilities |
 | --- | --- |
-| Data engineering | Source checksums, original ingestion lineage, PostgreSQL keys/constraints and idempotent conflict-safe loading |
-| Analytics and data science | Defined return/risk conventions, independently reconciled SQL/Python outputs and deterministic calculation tests |
-| BI communication | Five user-completed pages with explicit windows, quality caveats and guarded measure contexts |
-| AI/data-platform foundations | Input validation, reproducibility, evaluation discipline and traceability; no AI/ML model is represented as delivered |
+| Ingestion | Python, requests and openpyxl for HTTP acquisition and XLSX parsing |
+| Data preparation and calculations | pandas and NumPy for normalization, validation and numerical analysis |
+| Database access | PostgreSQL, SQL and psycopg for relational storage, constraints, transactions and analytical views |
+| Local configuration | python-dotenv for private administrator, owner and application settings |
+| Reporting | Power BI Desktop and DAX for measures, filtering and dashboard presentation |
+| Testing and version control | pytest and Git; pinned development dependencies in `requirements-lock.txt` |
 
-| Completed dashboard page | Non-numerical purpose |
+## Analytics methodology
+
+### Performance and drawdowns
+
+Returns use native EUR accumulating NAVs, rather than exchange closing prices. For consecutive observations, the NAV change is `NAV(t) / NAV(t-1) - 1`. Cumulative change is the ending-to-starting NAV ratio minus one. Compounded interval changes and endpoint ratios are reconciled independently in SQL and Python.
+
+CAGR uses actual elapsed days divided by 365.25 and requires at least a calendar anniversary. Monthly and calendar-year returns use documented boundary observations; incomplete or stale-boundary periods have NULL full-period returns and explicit status labels. Partial observed returns are kept separately.
+
+Drawdown is NAV divided by its running observed peak minus one. Maximum drawdown, peak/trough dates and the first observed recovery are recorded together. Unrecovered episodes remain ongoing, with no invented recovery date. Comparisons use a common window; equity and bond are not ranked as interchangeable peers.
+
+The chosen performance window is **2021-09-30 to 2026-09-30**. These are analysis parameters, not a claim of calendar-certified completeness.
+
+### Controlled NAV-risk analysis
+
+Risk estimation uses the separately approved **2023-12-01 to 2026-09-30** window. Returns join consecutive observed NAVs and retain actual elapsed calendar days. Reviewed issuer closures and ordinary weekends are retained as valuation intervals; intervals spanning unapproved omissions or invalid boundaries are excluded. NAVs are never forward-filled and absent dates never become zero returns.
+
+| Metric | Implemented convention |
 | --- | --- |
-| Executive Overview | Separate fixed-window performance and controlled-risk summaries |
-| Performance Comparison | Rebased/cumulative NAV paths and monthly/year reporting |
-| Risk & Drawdowns | Observed loss/recovery paths and eligible-window rolling risk |
-| Fund Detail | Share-class identity, methodology and individual metrics |
-| Data Quality & Methodology | Coverage, calendar classifications, limitations and original source lineage |
+| Annualized volatility | Sample standard deviation of eligible returns multiplied by the square root of 252 |
+| Downside deviation | Square root of the mean squared negative returns, across all eligible observations, annualized using 252; target is zero return |
+| Historical 95% VaR | Negative of the linear-interpolated fifth percentile of eligible returns |
+| Historical 95% Expected Shortfall | Negative mean of returns at or below the VaR return cutoff, including ties |
+| Rolling volatility | Full 63- and 252-observation windows; excluded intervals break eligibility rather than being compressed away |
 
-## Methodology boundaries
+Summary risk metrics require at least 252 eligible intervals. Sample counts and eligibility statuses accompany the results. Annualization approximates 252 valuation intervals per year; the observations have variable calendar-day horizons. VaR and Expected Shortfall therefore describe eligible valuation intervals, not uniform one-calendar-day losses.
 
-- Performance uses the chosen 2021-09-30 to 2026-09-30 window; controlled risk uses 2023-12-01 to 2026-09-30. Detailed observed coverage/count findings remain local pending permission.
-- Consecutive observed NAVs retain actual elapsed days. Ordinary weekends and reviewed issuer closures are retained; intervals spanning unapproved omissions are excluded. No NAV forward-filling or manufactured zero returns occurs.
-- Volatility/downside annualization uses approximately 252 valuation intervals/year. Downside deviation targets zero return. VaR/ES describe variable-calendar-length valuation intervals, not uniform one-calendar-day losses.
-- Drawdowns follow observed NAVs and may miss unobserved losses or earlier recovery. Native NAV is not independently certified corporate-action-adjusted total-return data.
-- Sharpe, Sortino, correlation, beta, tracking error, information ratio and benchmark-relative claims remain disabled. Cash integration and benchmark date/basis verification remain incomplete. No ML is implemented.
+**Not enabled:** Sharpe, Sortino, benchmark correlation, beta, tracking error, information ratio and benchmark-relative claims. Cash-rate integration and benchmark date/basis verification remain incomplete. No predictive machine learning is implemented.
 
-See [metric definitions](docs/metric_definitions.md), [calendar review](reports/calendar_completeness.md), [risk methodology](docs/risk_methodology.md) and [cash/benchmark limitations](docs/cash_benchmark_validation.md).
+## Power BI dashboard
 
-## Reproduce locally on Windows
+The five dashboard pages are completed and manually reviewed. Independent SQL validation is documented separately from Desktop visual/interaction review; no automated PBIX inspection is claimed.
 
-Start with [environment and configuration](docs/environment_setup.md), then follow the complete [clean-clone workflow](docs/reproduction_guide.md). It covers permission-gated acquisition, selecting the new acquisition manifest, bootstrap, loading, analytical SQL, presentation views and Desktop refresh. A normal CPU laptop is sufficient; no GPU, HPC, Docker or cloud account is required.
-
-Private configuration roles: `.env` administrator; `.env.owner` schema owner; `.env.app` application/Power BI. The tracked `.env.example` contains placeholders only. Raw/processed datasets, credentials, virtual environments and PBIX artifacts remain excluded from Git. A fresh clone must obtain permitted inputs and local credentials; it cannot assume the developer's ignored manifest or six earlier sample workbooks exist.
-
-## Repository guide
-
-| Location | Purpose |
+| Page | Analysis |
 | --- | --- |
-| src/investment_fund_analytics/ | Ingestion, validation, loading and analytics/reconciliation modules |
-| sql/ | Core/benchmark schemas, analytical and twelve Power BI presentation views |
-| tests/ | Deterministic calculation/parser checks and local integration checks |
-| docs/ | Sources, data dictionary, methodology, environment and Power BI build guidance |
-| powerbi/measures.dax | Approved SQL-result selection and display-context measures |
-| reports/ | Existing dated validation evidence; not blanket publication permission |
-| data/raw/, data/interim/, data/processed/ | Local ignored inputs and generated outputs; tracked placeholders only |
-| notebooks/, reports/figures/ | Reserved explanatory work/figure locations |
+| **Executive Overview** | Fixed-window performance and controlled-risk KPIs, fund selection and data-as-of context |
+| **Performance Comparison** | Base-100 NAV paths, cumulative changes, monthly return heatmap and calendar-year returns |
+| **Risk & Drawdowns** | Observed drawdown paths, rolling volatility, VaR/Expected Shortfall and recovery details |
+| **Fund Detail** | Share-class identity, issuer, domicile, currency, distribution policy and individual analytics |
+| **Data Quality & Methodology** | Coverage, interval exclusions, source lineage, suppressed metrics and refresh context |
 
-Power BI references: [data model](docs/powerbi_data_model.md), [field mapping](docs/powerbi_field_mapping.md), [build/refresh guide](docs/powerbi_build_guide.md). Numerical report generators now write local ignored reports; they do not overwrite the manually maintained dashboard evidence record.
+The documented model uses single-direction one-to-many dimension relationships and no fact-to-fact joins. Snapshot measures remain separate from arbitrary chart-date filtering: moving a chart slicer does not recalculate fixed-window KPIs, rebase NAV paths or reset drawdown peaks. Incomplete periods remain blank, and financial percentages are not summed across funds.
 
-## Data rights and release status
+## Project structure
 
-DWS source-use/publication permission remains unresolved and redistribution is restricted. Public download access and project approval do not confer provider permission. Keep original workbooks, processed series, database exports and the imported-data PBIX local. Derived numbers, charts, screenshots and PDFs are **not automatically cleared for publication**. The [publication inventory](docs/publication_review.md) and [redaction comparison](docs/publication_redactions.md) record targeted withholding of actual financial results, recovery-event details, benchmark comparisons and diagnostic rate samples from this working-tree candidate. Exact originals are preserved in a checksum-verified ignored local archive. Detailed observed calendar records and empirical coverage/count summaries are withheld locally pending permission. Ordinary fund identities, chosen analysis parameters and project-generated provenance remain public. See [source register](docs/source_register.md) and [benchmark sources](docs/benchmark_sources.md).
+```text
+investment-fund-analytics/
+|-- src/investment_fund_analytics/   # Ingestion, loading, analytics and reconciliation
+|-- sql/                            # Schemas, analytical views and load diagnostics
+|-- tests/                          # Unit tests and isolated/local integration checks
+|-- docs/                           # Methodology, sources, model and reproduction guides
+|-- reports/                        # Reviewed validation summaries
+|-- powerbi/
+|   `-- measures.dax                # Dashboard measures
+|-- data/
+|   |-- raw/                        # Ignored source inputs
+|   |-- interim/                    # Ignored local calendar/working evidence
+|   `-- processed/                  # Ignored validated and analytical outputs
+|-- notebooks/                      # Reserved directory; placeholder only
+|-- .env.example                    # Configuration placeholders
+|-- pytest.ini
+|-- requirements.txt
+`-- requirements-lock.txt
+```
 
-The dashboard is completed according to the user's manual review; this is a methods-focused publication candidate, not a legally cleared release. Successful private numerical validation is documented without publishing its withheld values; publicly repeatable financial validation still requires permitted inputs and a local setup. The previously pushed initial commit also contains numerical content: sanitizing a later tree would not erase public Git history. No history rewrite or removal has been performed. Public artifact release remains conditional on rights and content checks. This documentation update neither publishes data-bearing artifacts nor clears their rights. The project is descriptive and educational, not investment advice or a regulatory risk assessment.
+Data directories contain tracked placeholders, not financial inputs. `docs/calendar_gap_register.csv` is a six-column header-only template; the populated register is reconstructed and reviewed locally.
+
+## Getting started
+
+### Public code and tests
+
+Install Python and Git. The recorded development environment used Python 3.13; the dependency lock is not a compatibility guarantee for every interpreter. From PowerShell:
+
+```powershell
+git clone https://github.com/aarshad002/investment-fund-analytics.git
+Set-Location investment-fund-analytics
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements-lock.txt
+.\.venv\Scripts\python.exe -m pip check
+$env:PYTHONPATH = 'src'
+.\.venv\Scripts\python.exe -m pytest -q -r s
+```
+
+Portable tests run without financial datasets. Checks requiring private inputs or database configuration explicitly skip when those prerequisites are absent.
+
+### PostgreSQL and authorized data workflows
+
+Install PostgreSQL **16 or newer** and Power BI Desktop separately. Create an administrator configuration only if one does not already exist:
+
+```powershell
+if (-not (Test-Path -LiteralPath .env)) {
+    Copy-Item -LiteralPath .env.example -Destination .env
+}
+```
+
+Privately replace placeholders in `.env`, using the maintenance database for bootstrap:
+
+```dotenv
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=postgres
+DB_USER=<local_administrator_role>
+DB_PASSWORD=<strong_unique_private_password>
+DB_SSLMODE=prefer
+```
+
+| Private file | Purpose |
+| --- | --- |
+| `.env` | Administrator connection for database/role setup and disposable database tests |
+| `.env.owner` | `ifa_owner` connection for schemas and analytical views |
+| `.env.app` | `ifa_app` connection for ingestion and Power BI access |
+
+Bootstrap creates missing project roles and private role files; existing roles require their matching configuration. Power BI credentials are entered privately in Desktop, not automatically read from dotenv files. The application role has limited ingestion privileges as well as SELECT access; it is not a SELECT-only account.
+
+Follow the [complete reproduction guide](docs/reproduction_guide.md) in order:
+
+1. Establish the applicable permission basis before acquiring financial data.
+2. Acquire and validate official exports; select the acquisition manifest explicitly.
+3. Reconstruct and review the local calendar register against the observed quality evidence.
+4. Bootstrap PostgreSQL and load validated observations with lineage and conflict checks.
+5. Apply performance, controlled-interval, risk and Power BI SQL views in dependency order.
+6. Run independent reconciliation and connect Power BI Desktop to the twelve presentation views.
+
+There is no bundled financial dataset or one-command dashboard build. See [environment setup](docs/environment_setup.md) for installation and configuration details.
+
+## Testing and validation
+
+Recorded validation results are **81 passed, 0 failed, 0 skipped** in the configured local environment, and **65 passed, 0 failed, 16 explicitly skipped** in a public-only verification copy. These are established checkpoints, not permanent results or a guarantee that private-data checks run on a clean clone.
+
+Coverage includes deterministic return/drawdown sequences, recovery boundaries, incomplete periods, risk quantiles, rolling-window barriers, workbook parsing and calendar-register structure. Database write tests use disposable databases guarded by generated test names; project comparison connections enforce read-only transactions. Real-data integration tests require authorized local inputs.
+
+SQL/Python reconciliation passed for performance, period returns, drawdowns and controlled-risk outputs. Calendar separation verification confirmed unchanged working tables, sequences and Power BI view structures/outputs. Financial verification, database integrity and manual dashboard review remain distinct evidence types. See [testing evidence](docs/testing_validation.md) and [dashboard validation](reports/powerbi_validation.md).
+
+## Data availability and limitations
+
+Source-derived financial datasets, populated calendar evidence, detailed empirical coverage/count reports, numerical financial findings and the imported-data PBIX are not distributed. Users must obtain inputs independently under applicable provider terms. Technical download access does not establish reuse permission; DWS source-use/publication permissions remain unresolved. Derived charts, screenshots and embedded data are not automatically cleared for redistribution.
+
+Calendar completeness is not certified for unrestricted five-year daily-risk analysis. Controlled-risk eligibility is narrower than the performance window, and observed drawdowns can miss unobserved losses or earlier recovery. Native NAV changes are not independently certified corporate-action-adjusted total returns. Historical risk statistics are descriptive, not forecasts, investment advice or regulatory risk ratings.
+
+## Documentation
+
+| Topic | Reference |
+| --- | --- |
+| Architecture and relational design | [Data dictionary](docs/data_dictionary.md), [Power BI data model](docs/powerbi_data_model.md) |
+| Calculation conventions | [Metric definitions](docs/metric_definitions.md), [controlled-risk methodology](docs/risk_methodology.md) |
+| Calendar treatment | [Calendar review](reports/calendar_completeness.md), [public register template](docs/calendar_gap_register.csv) |
+| Sources and access constraints | [Source register](docs/source_register.md), [benchmark validation gates](docs/benchmark_sources.md) |
+| Installation and reproduction | [Environment setup](docs/environment_setup.md), [reproduction workflow](docs/reproduction_guide.md) |
+| Dashboard implementation | [Field mapping](docs/powerbi_field_mapping.md), [build guide](docs/powerbi_build_guide.md), [DAX measures](powerbi/measures.dax) |
+| Validation | [Testing evidence](docs/testing_validation.md), [performance validation](reports/performance_analysis_validation.md), [risk validation](reports/risk_analysis_validation.md) |
+| Publication boundaries | [Publication review](docs/publication_review.md) |
